@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Paneli — Keşfet Türkiye</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --red:#C1272D; --cream:#FDF6EC; --sand:#E8DCC8; --dark:#1A1410; --mid:#5C4A36; --light:#F5EFE4; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'DM Sans',sans-serif; background:#F0EBE1; color:var(--dark); min-height:100vh; }
+
+  /* LAYOUT */
+  .admin-layout { display:flex; min-height:100vh; }
+  .sidebar { width:240px; background:var(--dark); padding:28px 0; flex-shrink:0; position:fixed; top:0; left:0; bottom:0; overflow-y:auto; }
+  .sidebar-logo { font-family:'Playfair Display',serif; color:var(--red); font-size:18px; padding:0 24px 28px; border-bottom:1px solid rgba(255,255,255,.08); cursor:pointer; }
+  .sidebar-logo span { display:block; font-family:'DM Sans',sans-serif; font-size:10px; color:rgba(255,255,255,.3); letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
+  .sidebar-menu { margin-top:20px; }
+  .menu-item { display:flex; align-items:center; gap:10px; padding:12px 24px; color:rgba(255,255,255,.55); font-size:14px; cursor:pointer; transition:all .15s; border-left:3px solid transparent; }
+  .menu-item:hover { background:rgba(255,255,255,.05); color:rgba(255,255,255,.85); }
+  .menu-item.active { background:rgba(193,39,45,.15); color:white; border-left-color:var(--red); }
+  .menu-item-icon { font-size:16px; width:20px; text-align:center; flex-shrink:0; }
+  .main { margin-left:240px; padding:32px; flex:1; }
+
+  /* HEADER */
+  .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:12px; }
+  .page-title { font-family:'Playfair Display',serif; font-size:28px; font-weight:700; }
+  .back-btn { padding:9px 20px; background:white; border:1.5px solid var(--sand); border-radius:8px; font-size:13px; cursor:pointer; font-family:'DM Sans',sans-serif; color:var(--mid); transition:border-color .2s; text-decoration:none; }
+  .back-btn:hover { border-color:var(--red); color:var(--red); }
+
+  /* STAT CARDS */
+  .stat-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:16px; margin-bottom:32px; }
+  .stat-card { background:white; border-radius:14px; padding:20px; border:1px solid var(--sand); text-align:center; }
+  .stat-card-num { font-family:'Playfair Display',serif; font-size:38px; font-weight:700; color:var(--red); line-height:1; }
+  .stat-card-label { font-size:12px; color:#999; margin-top:6px; text-transform:uppercase; letter-spacing:1px; }
+
+  /* TABLES */
+  .section { background:white; border-radius:14px; border:1px solid var(--sand); overflow:hidden; margin-bottom:24px; }
+  .section-head { padding:18px 22px; border-bottom:1px solid var(--sand); display:flex; align-items:center; justify-content:space-between; }
+  .section-head h3 { font-size:15px; font-weight:500; }
+  .section-head span { font-size:12px; color:#bbb; }
+  table { width:100%; border-collapse:collapse; }
+  th { background:var(--light); padding:10px 16px; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.5px; color:var(--mid); text-align:left; }
+  td { padding:12px 16px; font-size:13px; border-bottom:1px solid #f5f5f5; vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:#FAFAF9; }
+
+  /* BADGES */
+  .badge { padding:3px 10px; border-radius:10px; font-size:11px; font-weight:500; }
+  .badge-admin { background:#FEE2E2; color:#991B1B; }
+  .badge-user  { background:var(--light); color:var(--mid); }
+
+  /* BUTTONS */
+  .btn { padding:5px 12px; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; border:none; font-family:'DM Sans',sans-serif; transition:all .15s; }
+  .btn-red    { background:#FEE2E2; color:#991B1B; }
+  .btn-red:hover    { background:#FECACA; }
+  .btn-green  { background:#D1FAE5; color:#065F46; }
+  .btn-green:hover  { background:#A7F3D0; }
+  .btn-gray   { background:var(--light); color:var(--mid); border:1px solid var(--sand); }
+  .btn-gray:hover   { border-color:var(--red); color:var(--red); }
+
+  /* TABS */
+  .tabs-row { display:flex; gap:0; border-bottom:2px solid var(--sand); margin-bottom:24px; }
+  .tab-btn { padding:12px 20px; font-size:14px; font-weight:500; cursor:pointer; border:none; background:transparent; color:var(--mid); font-family:'DM Sans',sans-serif; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .2s; }
+  .tab-btn.active { color:var(--red); border-bottom-color:var(--red); }
+
+  /* TOP CİTİES */
+  .top-city-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #f5f5f5; }
+  .top-city-rank { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:var(--red); width:28px; }
+  .top-city-bar-wrap { flex:1; height:6px; background:var(--light); border-radius:3px; overflow:hidden; }
+  .top-city-bar { height:100%; background:var(--red); border-radius:3px; }
+
+  /* EMPTY */
+  .empty-msg { padding:40px; text-align:center; color:#bbb; font-size:14px; }
+
+  /* ACCESS DENIED */
+  .access-denied { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; text-align:center; gap:16px; }
+  .access-denied h1 { font-family:'Playfair Display',serif; font-size:48px; color:var(--red); }
+</style>
+</head>
+<body>
+
+<div id="accessDenied" class="access-denied" style="display:none">
+  <h1>403</h1>
+  <p>Bu sayfaya erişim için admin yetkisi gerekli.</p>
+  <a href="/" class="back-btn" style="display:inline-block">← Ana Sayfaya Dön</a>
+</div>
+
+<div id="adminPanel" class="admin-layout" style="display:none">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo" onclick="location.href='/'">🌙 Keşfet<span>Admin Paneli</span></div>
+    <nav class="sidebar-menu">
+      <div class="menu-item active" data-tab="dashboard" onclick="switchTab('dashboard',this)"><span class="menu-item-icon">📊</span>Dashboard</div>
+      <div class="menu-item" data-tab="users"     onclick="switchTab('users',this)"><span class="menu-item-icon">👥</span>Kullanıcılar</div>
+      <div class="menu-item" data-tab="reviews"   onclick="switchTab('reviews',this)"><span class="menu-item-icon">💬</span>Yorumlar</div>
+      <div class="menu-item" data-tab="cities"    onclick="switchTab('cities',this)"><span class="menu-item-icon">🏙️</span>Şehir İstatistikleri</div>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="page-header">
+      <h1 class="page-title" id="pageTitle">Dashboard</h1>
+      <a href="/" class="back-btn">← Siteye Dön</a>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="tab-dashboard">
+      <div class="stat-cards" id="statCards"></div>
+      <div class="section">
+        <div class="section-head"><h3>En Çok Görüntülenen Şehirler</h3></div>
+        <div style="padding:16px 22px" id="topCities"></div>
+      </div>
+    </div>
+
+    <!-- KULLANICILAR -->
+    <div id="tab-users" style="display:none">
+      <div class="section">
+        <div class="section-head"><h3>Tüm Kullanıcılar</h3><span id="userCount"></span></div>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>ID</th><th>Kullanıcı Adı</th><th>E-posta</th><th>Rol</th><th>Yorum</th><th>Favori</th><th>Plan</th><th>Kayıt</th><th>İşlem</th></tr></thead>
+          <tbody id="usersTable"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- YORUMLAR -->
+    <div id="tab-reviews" style="display:none">
+      <div class="section">
+        <div class="section-head"><h3>Tüm Yorumlar</h3><span id="reviewCount"></span></div>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>ID</th><th>Şehir</th><th>Kullanıcı</th><th>Puan</th><th>Yorum</th><th>Beğeni</th><th>Tarih</th><th>İşlem</th></tr></thead>
+          <tbody id="reviewsTable"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ŞEHİR İSTATİSTİKLERİ -->
+    <div id="tab-cities" style="display:none">
+      <div class="section">
+        <div class="section-head"><h3>Şehir Performansı</h3></div>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Şehir</th><th>Bölge</th><th>Görüntülenme</th><th>Yorum Sayısı</th><th>Favori</th><th>Bar</th></tr></thead>
+          <tbody id="citiesTable"></tbody>
+        </table></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const TABS = ['dashboard','users','reviews','cities'];
+
+function switchTab(name, el){
+  TABS.forEach(t=>{
+    document.getElementById('tab-'+t).style.display = t===name?'block':'none';
+  });
+  document.querySelectorAll('.menu-item').forEach(m=>m.classList.toggle('active', m.dataset.tab===name));
+  const titles = {dashboard:'Dashboard', users:'Kullanıcılar', reviews:'Yorumlar', cities:'Şehir İstatistikleri'};
+  document.getElementById('pageTitle').textContent = titles[name]||name;
+  if(name==='users')   loadUsers();
+  if(name==='reviews') loadAdminReviews();
+  if(name==='cities')  loadCities();
+}
+
+function stars(n){ return '★'.repeat(n)+'☆'.repeat(5-n); }
+
+// ── DASHBOARD ──────────────────────────────────────────────────────────────
+async function loadDashboard(){
+  const res  = await fetch('/api/admin/stats', {credentials:'include'});
+  const data = await res.json();
+  document.getElementById('statCards').innerHTML = `
+    <div class="stat-card"><div class="stat-card-num">${data.users}</div><div class="stat-card-label">Kullanıcı</div></div>
+    <div class="stat-card"><div class="stat-card-num">${data.reviews}</div><div class="stat-card-label">Yorum</div></div>
+    <div class="stat-card"><div class="stat-card-num">${data.favorites}</div><div class="stat-card-label">Favori</div></div>
+    <div class="stat-card"><div class="stat-card-num">${data.trips}</div><div class="stat-card-label">Seyahat Planı</div></div>
+    <div class="stat-card"><div class="stat-card-num">${data.photos}</div><div class="stat-card-label">Fotoğraf</div></div>
+  `;
+  const maxViews = Math.max(...data.top_cities.map(c=>c.view_count||0), 1);
+  document.getElementById('topCities').innerHTML = data.top_cities.map((c,i)=>`
+    <div class="top-city-row">
+      <div class="top-city-rank">${i+1}</div>
+      <div style="flex:1">
+        <div style="font-weight:500;font-size:14px;margin-bottom:4px">${c.name}
+          <span style="font-size:11px;color:#bbb;margin-left:8px">${c.view_count||0} görüntülenme · ${c.reviews} yorum · ${c.favorites} favori</span>
+        </div>
+        <div class="top-city-bar-wrap"><div class="top-city-bar" style="width:${Math.round(((c.view_count||0)/maxViews)*100)}%"></div></div>
+      </div>
+    </div>`).join('') || '<div class="empty-msg">Veri yok</div>';
+}
+
+// ── KULLANICILAR ───────────────────────────────────────────────────────────
+async function loadUsers(){
+  const res  = await fetch('/api/admin/users',{credentials:'include'});
+  const list = await res.json();
+  document.getElementById('userCount').textContent = list.length + ' kullanıcı';
+  document.getElementById('usersTable').innerHTML = list.map(u=>`
+    <tr>
+      <td style="color:#bbb">#${u.id}</td>
+      <td style="font-weight:500">${u.username}</td>
+      <td style="color:var(--mid)">${u.email}</td>
+      <td><span class="badge badge-${u.role}">${u.role}</span></td>
+      <td>${u.review_count}</td>
+      <td>${u.fav_count}</td>
+      <td>${u.trip_count}</td>
+      <td style="color:#bbb;font-size:11px">${(u.created_at||'').slice(0,10)}</td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-green" onclick="setRole(${u.id},'${u.role==='admin'?'user':'admin'}')">${u.role==='admin'?'User Yap':'Admin Yap'}</button>
+        <button class="btn btn-red"   onclick="deleteUser(${u.id},'${u.username}')">Sil</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="9" class="empty-msg">Kullanıcı yok</td></tr>';
+}
+async function setRole(id, role){
+  if(!confirm(`Rol ${role} olarak değiştirilsin mi?`)) return;
+  await fetch('/api/admin/users/'+id+'/role',{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({role})});
+  loadUsers();
+}
+async function deleteUser(id, name){
+  if(!confirm(`"${name}" silinsin mi? Bu işlem geri alınamaz.`)) return;
+  await fetch('/api/admin/users/'+id,{method:'DELETE',credentials:'include'});
+  loadUsers();
+}
+
+// ── YORUMLAR ───────────────────────────────────────────────────────────────
+async function loadAdminReviews(){
+  const res  = await fetch('/api/admin/reviews',{credentials:'include'});
+  if(!res.ok){ document.getElementById('reviewsTable').innerHTML='<tr><td colspan="8" class="empty-msg">Veriler yüklenemedi.</td></tr>'; return; }
+  const list = await res.json();
+  document.getElementById('reviewCount').textContent = list.length + ' yorum';
+  document.getElementById('reviewsTable').innerHTML = list.map(r=>`
+    <tr>
+      <td style="color:#bbb">#${r.id}</td>
+      <td><span style="font-weight:500">${r.city_name}</span></td>
+      <td>${r.username||r.reviewer_name}</td>
+      <td style="color:#D97706">${stars(r.rating)}</td>
+      <td style="max-width:240px;color:var(--mid);font-size:12px">${r.text.slice(0,80)}${r.text.length>80?'…':''}</td>
+      <td>👍 ${r.like_count}</td>
+      <td style="color:#bbb;font-size:11px">${(r.created_at||'').slice(0,10)}</td>
+      <td><button class="btn btn-red" onclick="deleteReview(${r.id})">Sil</button></td>
+    </tr>`).join('') || '<tr><td colspan="8" class="empty-msg">Yorum yok</td></tr>';
+}
+async function deleteReview(id){
+  if(!confirm('Bu yorumu sil?')) return;
+  await fetch('/api/admin/reviews/'+id,{method:'DELETE',credentials:'include'});
+  loadAdminReviews();
+}
+
+// ── ŞEHİRLER ──────────────────────────────────────────────────────────────
+async function loadCities(){
+  const [cRes, sRes] = await Promise.all([
+    fetch('/api/cities'),
+    fetch('/api/admin/stats',{credentials:'include'})
+  ]);
+  const cities = await cRes.json();
+  const stats  = (await sRes.json()).top_cities;
+  const statsMap = Object.fromEntries(stats.map(s=>[s.name,s]));
+  const maxView = Math.max(...stats.map(s=>s.view_count||0),1);
+  document.getElementById('citiesTable').innerHTML = cities.map(c=>{
+    const s = statsMap[c.name]||{view_count:0,reviews:0,favorites:0};
+    const pct = Math.round(((s.view_count||0)/maxView)*100);
+    return `<tr>
+      <td style="font-weight:500">${c.name}</td>
+      <td style="color:#999">${c.region}</td>
+      <td>${s.view_count||0}</td>
+      <td>${s.reviews||0}</td>
+      <td>${s.favorites||0}</td>
+      <td><div style="width:100px;height:6px;background:var(--light);border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--red);border-radius:3px"></div></div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+async function init(){
+  try{
+    const res  = await fetch('/api/auth/me',{credentials:'include'});
+    const data = await res.json();
+    if(!data.loggedIn || data.role !== 'admin'){
+      document.getElementById('accessDenied').style.display='flex';
+      return;
+    }
+    document.getElementById('adminPanel').style.display='flex';
+    loadDashboard();
+  }catch{
+    document.getElementById('accessDenied').style.display='flex';
+  }
+}
+init();
+</script>
+</body>
+</html>

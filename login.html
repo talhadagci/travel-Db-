@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Giriş Yap — Keşfet Türkiye</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red:   #C1272D;
+    --red2:  #8B0000;
+    --cream: #FDF6EC;
+    --sand:  #E8DCC8;
+    --dark:  #1A1410;
+    --mid:   #5C4A36;
+    --light: #F5EFE4;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; }
+  body {
+    font-family:'DM Sans',sans-serif;
+    background: linear-gradient(160deg,#1A1410 0%,#3D1F0D 40%,#6B2D1A 100%);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+
+  /* ── arka plan desen ── */
+  body::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    opacity:.06;
+    background-image:repeating-linear-gradient(45deg,#FDF6EC 0,#FDF6EC 1px,transparent 0,transparent 50%);
+    background-size:20px 20px;
+    pointer-events:none;
+  }
+
+  /* ── kart ── */
+  .card {
+    position:relative;
+    background:var(--cream);
+    border-radius:24px;
+    width:100%;
+    max-width:440px;
+    padding:48px 44px;
+    box-shadow:0 32px 80px rgba(0,0,0,.45);
+    animation:cardIn .4s ease;
+  }
+  @keyframes cardIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ── logo ── */
+  .logo {
+    font-family:'Playfair Display',serif;
+    font-size:22px;
+    color:var(--red);
+    letter-spacing:1px;
+    text-align:center;
+    margin-bottom:32px;
+    cursor:pointer;
+  }
+
+  /* ── tabs ── */
+  .tabs {
+    display:flex;
+    background:var(--light);
+    border-radius:10px;
+    padding:4px;
+    margin-bottom:32px;
+  }
+  .tab {
+    flex:1;
+    text-align:center;
+    padding:10px;
+    border-radius:8px;
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    color:var(--mid);
+    transition:all .2s;
+    border:none;
+    background:transparent;
+    font-family:'DM Sans',sans-serif;
+  }
+  .tab.active {
+    background:white;
+    color:var(--dark);
+    box-shadow:0 2px 8px rgba(26,20,16,.1);
+  }
+
+  /* ── form ── */
+  .form { display:none; flex-direction:column; gap:16px; }
+  .form.active { display:flex; }
+
+  .field { display:flex; flex-direction:column; gap:6px; }
+  .field label { font-size:12px; font-weight:500; color:var(--mid); letter-spacing:.5px; text-transform:uppercase; }
+  .field input {
+    padding:12px 16px;
+    border:1.5px solid var(--sand);
+    border-radius:10px;
+    font-size:14px;
+    font-family:'DM Sans',sans-serif;
+    color:var(--dark);
+    background:white;
+    outline:none;
+    transition:border-color .2s, box-shadow .2s;
+  }
+  .field input:focus {
+    border-color:var(--red);
+    box-shadow:0 0 0 3px rgba(193,39,45,.1);
+  }
+
+  /* ── submit ── */
+  .btn-submit {
+    margin-top:4px;
+    background:var(--red);
+    color:white;
+    border:none;
+    padding:14px;
+    border-radius:10px;
+    font-size:15px;
+    font-weight:500;
+    cursor:pointer;
+    font-family:'DM Sans',sans-serif;
+    transition:background .2s, transform .15s;
+    letter-spacing:.5px;
+  }
+  .btn-submit:hover { background:#A01F24; transform:translateY(-1px); }
+  .btn-submit:active { transform:translateY(0); }
+  .btn-submit:disabled { background:#ccc; cursor:not-allowed; transform:none; }
+
+  /* ── hata / başarı ── */
+  .msg {
+    font-size:13px;
+    padding:10px 14px;
+    border-radius:8px;
+    display:none;
+    margin-top:-4px;
+  }
+  .msg.error   { background:#FEE2E2; color:#991B1B; border:1px solid #FECACA; display:block; }
+  .msg.success { background:#D1FAE5; color:#065F46; border:1px solid #A7F3D0; display:block; }
+
+  /* ── divider ── */
+  .divider {
+    text-align:center;
+    font-size:12px;
+    color:#bbb;
+    margin:8px 0 0;
+    position:relative;
+  }
+  .divider::before, .divider::after {
+    content:'';
+    position:absolute;
+    top:50%;
+    width:38%;
+    height:1px;
+    background:var(--sand);
+  }
+  .divider::before { left:0; }
+  .divider::after  { right:0; }
+
+  /* ── geri dön ── */
+  .back {
+    text-align:center;
+    margin-top:24px;
+    font-size:13px;
+    color:var(--mid);
+  }
+  .back a { color:var(--red); text-decoration:none; font-weight:500; }
+  .back a:hover { text-decoration:underline; }
+
+  /* ── şifre alanı ── */
+  .pw-wrap { position:relative; }
+  .pw-wrap input { width:100%; padding-right:44px; }
+  .pw-toggle {
+    position:absolute;
+    right:14px;
+    top:50%;
+    transform:translateY(-50%);
+    background:none;
+    border:none;
+    cursor:pointer;
+    font-size:17px;
+    color:#aaa;
+    padding:0;
+    line-height:1;
+  }
+  .pw-toggle:hover { color:var(--mid); }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo" onclick="location.href='/'">🌙 Keşfet Türkiye</div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('login')">Giriş Yap</button>
+    <button class="tab"        onclick="switchTab('register')">Kayıt Ol</button>
+  </div>
+
+  <!-- GİRİŞ FORMU -->
+  <form class="form active" id="loginForm" onsubmit="handleLogin(event)">
+    <div class="field">
+      <label>E-posta</label>
+      <input type="email" id="l-email" placeholder="ornek@mail.com" required autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Şifre</label>
+      <div class="pw-wrap">
+        <input type="password" id="l-password" placeholder="••••••••" required autocomplete="current-password">
+        <button type="button" class="pw-toggle" onclick="togglePw('l-password',this)">👁️</button>
+      </div>
+    </div>
+    <div class="msg" id="loginMsg"></div>
+    <button class="btn-submit" type="submit" id="loginBtn">Giriş Yap →</button>
+    <div class="divider">veya</div>
+    <div style="text-align:center;font-size:13px;color:var(--mid)">
+      Hesabın yok mu?
+      <a href="#" onclick="switchTab('register');return false;" style="color:var(--red);font-weight:500">Kayıt ol</a>
+    </div>
+  </form>
+
+  <!-- KAYIT FORMU -->
+  <form class="form" id="registerForm" onsubmit="handleRegister(event)">
+    <div class="field">
+      <label>Kullanıcı Adı</label>
+      <input type="text" id="r-username" placeholder="gezgin42" required autocomplete="username" minlength="3">
+    </div>
+    <div class="field">
+      <label>E-posta</label>
+      <input type="email" id="r-email" placeholder="ornek@mail.com" required autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Şifre</label>
+      <div class="pw-wrap">
+        <input type="password" id="r-password" placeholder="En az 6 karakter" required autocomplete="new-password" minlength="6">
+        <button type="button" class="pw-toggle" onclick="togglePw('r-password',this)">👁️</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Şifre Tekrar</label>
+      <div class="pw-wrap">
+        <input type="password" id="r-password2" placeholder="Şifreni tekrar gir" required autocomplete="new-password">
+        <button type="button" class="pw-toggle" onclick="togglePw('r-password2',this)">👁️</button>
+      </div>
+    </div>
+    <div class="msg" id="registerMsg"></div>
+    <button class="btn-submit" type="submit" id="registerBtn">Kayıt Ol →</button>
+    <div class="divider">veya</div>
+    <div style="text-align:center;font-size:13px;color:var(--mid)">
+      Zaten hesabın var mı?
+      <a href="#" onclick="switchTab('login');return false;" style="color:var(--red);font-weight:500">Giriş yap</a>
+    </div>
+  </form>
+
+  <div class="back">
+    <a href="/">← Ana sayfaya dön</a>
+  </div>
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.getElementById('loginForm').classList.toggle('active', tab==='login');
+  document.getElementById('registerForm').classList.toggle('active', tab==='register');
+  showMsg('loginMsg','','');
+  showMsg('registerMsg','','');
+}
+
+function showMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'msg' + (type ? ' '+type : '');
+}
+
+function togglePw(id, btn) {
+  const inp = document.getElementById(id);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁️' : '🙈';
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Giriş yapılıyor...';
+  showMsg('loginMsg','','');
+  try {
+    const res = await fetch('/api/auth/login', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      credentials:'include',
+      body: JSON.stringify({
+        email:    document.getElementById('l-email').value.trim(),
+        password: document.getElementById('l-password').value
+      })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showMsg('loginMsg', '✓ Hoş geldin, ' + data.username + '!', 'success');
+      setTimeout(()=> location.href = '/', 800);
+    } else {
+      showMsg('loginMsg', data.error, 'error');
+    }
+  } catch {
+    showMsg('loginMsg', 'Sunucuya bağlanılamadı.', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Giriş Yap →';
+  }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  const pw  = document.getElementById('r-password').value;
+  const pw2 = document.getElementById('r-password2').value;
+  if (pw !== pw2) { showMsg('registerMsg','Şifreler eşleşmiyor','error'); return; }
+
+  const btn = document.getElementById('registerBtn');
+  btn.disabled = true; btn.textContent = 'Kayıt olunuyor...';
+  showMsg('registerMsg','','');
+  try {
+    const res = await fetch('/api/auth/register', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      credentials:'include',
+      body: JSON.stringify({
+        username: document.getElementById('r-username').value.trim(),
+        email:    document.getElementById('r-email').value.trim(),
+        password: pw
+      })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showMsg('registerMsg', '✓ Hesabın oluşturuldu! Yönlendiriliyorsun...', 'success');
+      setTimeout(()=> location.href = '/', 1000);
+    } else {
+      showMsg('registerMsg', data.error, 'error');
+    }
+  } catch {
+    showMsg('registerMsg', 'Sunucuya bağlanılamadı.', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Kayıt Ol →';
+  }
+}
+</script>
+</body>
+</html>
