@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Database Design Document – Keşfet Türkiye</title>
+<style>
+  body { font-family: 'Times New Roman', serif; max-width: 960px; margin: 0 auto; padding: 40px 60px; background: #fff; color: #111; line-height: 1.7; }
+  h1 { font-size: 26px; text-align: center; margin-bottom: 6px; }
+  h2 { font-size: 20px; border-bottom: 2px solid #333; padding-bottom: 4px; margin-top: 48px; }
+  h3 { font-size: 16px; margin-top: 28px; }
+  h4 { font-size: 14px; margin-top: 18px; font-style: italic; }
+  .subtitle { text-align: center; font-size: 14px; color: #555; margin-bottom: 40px; }
+  .cover { text-align: center; padding: 60px 0 40px; border-bottom: 1px solid #ccc; margin-bottom: 50px; }
+  .cover p { margin: 4px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13px; }
+  th, td { border: 1px solid #aaa; padding: 8px 12px; text-align: left; }
+  th { background: #f0f0f0; font-weight: bold; }
+  tr:nth-child(even) td { background: #fafafa; }
+  code, pre { font-family: 'Courier New', monospace; font-size: 12px; background: #f5f5f5; }
+  pre { padding: 14px 18px; border: 1px solid #ddd; border-radius: 4px; overflow-x: auto; line-height: 1.5; }
+  .er-container { border: 1px solid #ccc; border-radius: 6px; padding: 20px; background: #fff; overflow-x: auto; margin: 24px 0; }
+  .er-container svg { display: block; margin: 0 auto; }
+  .query-box { background: #f9f9f9; border-left: 4px solid #c1272d; padding: 10px 16px; margin: 12px 0; border-radius: 0 4px 4px 0; }
+  .query-box code { background: transparent; display: block; white-space: pre-wrap; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin-bottom: 4px; }
+  .note { font-size: 12px; color: #666; font-style: italic; }
+  @media print { body { padding: 20px 40px; } }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>Keşfet Türkiye — Turkey Travel Guide</h1>
+  <h2 style="border:none; font-size:18px; margin-top:8px;">Database Design Document</h2>
+  <p style="margin-top:30px;"><strong>Phase 1:</strong> Requirements Analysis &amp; E/R Diagram</p>
+  <p><strong>Phase 2:</strong> Relational Database Schema</p>
+  <p style="margin-top:24px;">Author: talhadagci</p>
+  <p>Date: May 2026</p>
+</div>
+
+<!-- ===================================================================== -->
+<h2>Phase 1 — Step 1: Requirements Analysis</h2>
+
+<h3>1.1 Project Description</h3>
+<p>
+  <strong>Keşfet Türkiye</strong> ("Discover Turkey") is a web-based travel-guide platform
+  focused entirely on Turkey. Registered users can explore cities and tourist attractions,
+  write and read reviews, build personalised travel itineraries, upload photos, and save
+  favourite destinations. An administrator panel provides moderation and platform-wide
+  statistics. The system is backed by an SQLite relational database and a Flask REST API.
+</p>
+
+<h3>1.2 Main Application Functions</h3>
+<ol>
+  <li><strong>City &amp; Place Browsing</strong> — Users can browse all Turkish cities (filtered by region or tag) and the popular attractions within each city.</li>
+  <li><strong>User Registration &amp; Authentication</strong> — Visitors can create an account, log in, update their profile (bio, location, avatar colour), and log out.</li>
+  <li><strong>Reviews &amp; Ratings</strong> — Authenticated users write text reviews and give star ratings (1–5) for cities. Reviews can be edited or deleted by their author.</li>
+  <li><strong>Review Likes</strong> — Users can like other users' reviews, creating a social engagement layer.</li>
+  <li><strong>Favourites</strong> — Users can mark cities as favourites for quick access later.</li>
+  <li><strong>Travel Plan Builder</strong> — Users create named trip plans, set travel dates, and add ordered city stops with personal notes.</li>
+  <li><strong>Photo Gallery</strong> — Users upload photos (jpg/png/webp) tagged to specific cities.</li>
+  <li><strong>City View Tracking</strong> — Each time a city detail page is opened, the system increments a view counter, generating passive popularity data.</li>
+  <li><strong>Notifications</strong> — The platform sends in-app notifications for key events (new favourite, review like, trip creation, photo upload).</li>
+  <li><strong>Admin Panel</strong> — Admins manage users (role promotion, deletion), moderate reviews, and view aggregated platform statistics.</li>
+  <li><strong>Full-text Search</strong> — Users can search cities and places by name, region, or description.</li>
+</ol>
+
+<h3>1.3 How the Functions Work Together</h3>
+<p>
+  A user first browses the city/place catalogue (function 1). If they wish to contribute,
+  they register (function 2). Once logged in they can write reviews (3), like others'
+  reviews (4), save favourites (5), build a trip (6), upload photos (7), and receive
+  notifications (9) for social interactions. The view-tracking counter (8) runs silently
+  in the background every time any user opens a city page. The admin role (10) sits on
+  top of the same data and consumes aggregated queries against all tables. Search (11)
+  queries the same city and place tables without authentication.
+</p>
+<p>
+  All functions converge on the same relational database. The most interesting analytical
+  value comes from cross-table aggregations: which cities attract the most reviews, who
+  are the most active users, which places appear in the most travel plans, etc.
+</p>
+
+<h3>1.4 Data Needed to Support the Functions</h3>
+<ul>
+  <li>City data: identifier, name, geographic region, description, category tags</li>
+  <li>Tourist place data: name, parent city, category, rating, description</li>
+  <li>User data: credentials, profile (bio, location, avatar), role, registration date</li>
+  <li>Reviews: author, target city, star rating (1–5), review text, timestamp</li>
+  <li>Review likes: which user liked which review, timestamp</li>
+  <li>Favourites: which user saved which city, timestamp</li>
+  <li>Trips: owner, title, start/end dates, description, creation timestamp</li>
+  <li>Trip stops: linked trip, ordered list of city stops, optional notes</li>
+  <li>Photos: uploader, city, file path, caption, upload timestamp</li>
+  <li>City view counters: per-city integer counter</li>
+  <li>Notifications: recipient user, message text, optional link, read/unread flag, timestamp</li>
+</ul>
+
+<h3>1.5 Interesting Database Queries</h3>
+<p>
+  The following queries cannot be answered by simply reading a single stored value; they
+  must be <em>derived</em> by aggregating or joining stored data — demonstrating strong
+  database support value.
+</p>
+
+<h4>Query 1 — Which city has the highest average user rating?</h4>
+<p>This identifies the most highly-praised destination, useful for featured recommendations.</p>
+<div class="query-box"><code>
+SELECT city_name,
+       ROUND(AVG(rating), 2)  AS avg_rating,
+       COUNT(*)               AS review_count
+FROM   reviews
+GROUP  BY city_name
+HAVING COUNT(*) >= 3
+ORDER  BY avg_rating DESC;
+</code></div>
+
+<h4>Query 2 — Top 5 most-visited cities (by page-view count)</h4>
+<p>Reflects organic user interest; helps highlight trending destinations on the home page.</p>
+<div class="query-box"><code>
+SELECT c.name,
+       c.region,
+       cv.view_count
+FROM   cities c
+JOIN   city_views cv ON cv.city_id = c.id
+ORDER  BY cv.view_count DESC
+LIMIT  5;
+</code></div>
+
+<h4>Query 3 — Which cities appear most often in travel plans?</h4>
+<p>Aggregates across users' itineraries to find destinations people actually plan to visit.</p>
+<div class="query-box"><code>
+SELECT ts.city_name,
+       COUNT(*)  AS plan_appearances
+FROM   trip_stops ts
+JOIN   trips      t  ON t.id = ts.trip_id
+GROUP  BY ts.city_name
+ORDER  BY plan_appearances DESC;
+</code></div>
+
+<h4>Query 4 — Ranking of users by total engagement (reviews + favourites + trips)</h4>
+<p>Identifies the platform's most active contributors for potential gamification rewards.</p>
+<div class="query-box"><code>
+SELECT u.username,
+       COUNT(DISTINCT r.id) AS reviews_written,
+       COUNT(DISTINCT f.id) AS cities_favourited,
+       COUNT(DISTINCT t.id) AS trips_created,
+       (COUNT(DISTINCT r.id) +
+        COUNT(DISTINCT f.id) +
+        COUNT(DISTINCT t.id)) AS total_engagement
+FROM   users     u
+LEFT JOIN reviews   r ON r.user_id = u.id
+LEFT JOIN favorites f ON f.user_id = u.id
+LEFT JOIN trips     t ON t.user_id = u.id
+GROUP  BY u.id
+ORDER  BY total_engagement DESC;
+</code></div>
+
+<h4>Query 5 — Which cities have the most user-uploaded photos?</h4>
+<p>Shows where the community generates visual content; can drive photo-featured city pages.</p>
+<div class="query-box"><code>
+SELECT p.city_name,
+       COUNT(*)  AS photo_count,
+       COUNT(DISTINCT p.user_id) AS contributing_users
+FROM   photos p
+GROUP  BY p.city_name
+ORDER  BY photo_count DESC;
+</code></div>
+
+<h4>Query 6 — Most-liked reviews (with reviewer and city)</h4>
+<p>Surfaces the highest-quality review content for featured placement.</p>
+<div class="query-box"><code>
+SELECT r.reviewer_name,
+       r.city_name,
+       r.rating,
+       r.text,
+       COUNT(l.id) AS like_count
+FROM   reviews      r
+LEFT JOIN review_likes l ON l.review_id = r.id
+GROUP  BY r.id
+ORDER  BY like_count DESC
+LIMIT  10;
+</code></div>
+
+<h4>Query 7 — Average trip length (number of stops) per user</h4>
+<p>Helps understand how deeply users plan and whether multi-city itineraries are common.</p>
+<div class="query-box"><code>
+SELECT u.username,
+       COUNT(ts.id) / NULLIF(COUNT(DISTINCT t.id), 0) AS avg_stops_per_trip,
+       COUNT(DISTINCT t.id) AS trip_count
+FROM   users u
+JOIN   trips     t  ON t.user_id = u.id
+JOIN   trip_stops ts ON ts.trip_id = t.id
+GROUP  BY u.id
+HAVING trip_count > 0
+ORDER  BY avg_stops_per_trip DESC;
+</code></div>
+
+<h4>Query 8 — Cities that appear in favourites but have zero reviews (content gap)</h4>
+<p>Reveals popular cities that still lack user-generated review content — marketing opportunity.</p>
+<div class="query-box"><code>
+SELECT c.name,
+       COUNT(DISTINCT f.user_id) AS favourite_count,
+       COUNT(DISTINCT r.id)      AS review_count
+FROM   cities    c
+LEFT JOIN favorites f ON f.city_id = c.id
+LEFT JOIN reviews   r ON r.city_id = c.id
+GROUP  BY c.id
+HAVING review_count = 0 AND favourite_count > 0
+ORDER  BY favourite_count DESC;
+</code></div>
+
+<!-- ===================================================================== -->
+<h2>Phase 1 — Step 2: Entity-Relationship (E/R) Diagram</h2>
+
+<h3>2.1 Overview of the Conceptual Design</h3>
+<p>
+  The central entity of the model is <strong>City</strong>. A city contains many
+  <strong>Places</strong> (tourist attractions). <strong>Users</strong> interact with
+  cities in three ways: they write <strong>Reviews</strong>, mark them as
+  <strong>Favourites</strong>, and include them as stops in <strong>Trips</strong>.
+  Users also interact with each other's reviews through <strong>Review Likes</strong>.
+  They contribute <strong>Photos</strong> attached to cities. The system tracks how
+  many times each city page has been opened via <strong>CityViews</strong>. Lastly,
+  the platform sends <strong>Notifications</strong> to users.
+</p>
+<p>
+  All relationships and their cardinalities are explained in Section 2.3 and depicted
+  in the E/R diagram below.
+</p>
+
+<h3>2.2 Entity Sets and Their Attributes</h3>
+<table>
+  <tr><th>Entity</th><th>Attributes (primary key underlined)</th></tr>
+  <tr><td>User</td><td><u>id</u>, username, email, password, role, bio, location, avatar_color, created_at</td></tr>
+  <tr><td>City</td><td><u>id</u>, name, region, description, tags</td></tr>
+  <tr><td>Place</td><td><u>id</u>, name, category, category_key, rating, description, icon, img_key</td></tr>
+  <tr><td>Review</td><td><u>id</u>, reviewer_name, rating, text, created_at</td></tr>
+  <tr><td>Trip</td><td><u>id</u>, title, start_date, end_date, description, created_at</td></tr>
+  <tr><td>Photo</td><td><u>id</u>, file_path, caption, created_at</td></tr>
+  <tr><td>Notification</td><td><u>id</u>, message, link, is_read, created_at</td></tr>
+  <tr><td>CityViews</td><td><u>city_id</u>, view_count</td></tr>
+</table>
+
+<h3>2.3 Relationship Sets and Cardinalities</h3>
+<table>
+  <tr><th>Relationship</th><th>Entities Involved</th><th>Cardinality</th><th>Extra Attributes</th></tr>
+  <tr><td>WRITES</td><td>User → Review</td><td>1 : N (one user writes many reviews)</td><td>—</td></tr>
+  <tr><td>REVIEWS</td><td>Review → City</td><td>N : 1 (many reviews about one city)</td><td>—</td></tr>
+  <tr><td>LIKES</td><td>User ↔ Review</td><td>M : N</td><td>created_at</td></tr>
+  <tr><td>FAVOURITES</td><td>User ↔ City</td><td>M : N</td><td>created_at</td></tr>
+  <tr><td>CREATES</td><td>User → Trip</td><td>1 : N</td><td>—</td></tr>
+  <tr><td>INCLUDES (TripStop)</td><td>Trip ↔ City</td><td>M : N</td><td>stop_order, notes</td></tr>
+  <tr><td>UPLOADS</td><td>User → Photo</td><td>1 : N</td><td>—</td></tr>
+  <tr><td>TAGGED_TO</td><td>Photo → City</td><td>N : 1</td><td>—</td></tr>
+  <tr><td>CONTAINS</td><td>City → Place</td><td>1 : N</td><td>—</td></tr>
+  <tr><td>TRACKED_BY</td><td>City ↔ CityViews</td><td>1 : 1</td><td>view_count</td></tr>
+  <tr><td>RECEIVES</td><td>User → Notification</td><td>1 : N</td><td>—</td></tr>
+</table>
+
+<h3>2.4 E/R Diagram</h3>
+<div class="er-container">
+<!-- SVG E/R Diagram: rectangles = entities, diamonds = relationships, ovals = attributes -->
+<svg width="900" height="820" viewBox="0 0 900 820" xmlns="http://www.w3.org/2000/svg"
+     font-family="Arial,sans-serif" font-size="12">
+
+  <!-- ── Definitions ─────────────────────────────────────────── -->
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#555"/>
+    </marker>
+  </defs>
+
+  <!-- ========= ENTITIES (blue rectangles) ===================== -->
+  <!-- User  (center-left) -->
+  <rect x="50" y="350" width="110" height="44" rx="3" fill="#DDEEFF" stroke="#336699" stroke-width="2"/>
+  <text x="105" y="377" text-anchor="middle" font-weight="bold">User</text>
+
+  <!-- City  (center) -->
+  <rect x="390" y="350" width="110" height="44" rx="3" fill="#DDEEFF" stroke="#336699" stroke-width="2"/>
+  <text x="445" y="377" text-anchor="middle" font-weight="bold">City</text>
+
+  <!-- Place (right) -->
+  <rect x="730" y="350" width="110" height="44" rx="3" fill="#DDEEFF" stroke="#336699" stroke-width="2"/>
+  <text x="785" y="377" text-anchor="middle" font-weight="bold">Place</text>
+
+  <!-- Review (bottom-left of User) -->
+  <rect x="50" y="570" width="110" height="44" rx="3" fill="#DDEEFF" stroke="#336699" stroke-width="2"/>
+  <text x="105" y="597" text-anchor="middle" font-weight="bold">Review</text>
+
+  <!-- Trip (top-left of User) -->
+  <rect x="50" y="130" width="110" height="44" rx="3" fill="#DDEEFF" stroke="#336699" stroke-width="2"/>
+  <text x="105" y="157" text-anchor="middle" font-weight="bold">Trip</text>
+
+  <!-- Photo (top-right of City) -->
+  <rect x="390" y="130" width="110" height="44" rx="3" fill="#DDEEFF" stroke="#336699" stroke-width="2"/>
+  <text x="445" y="157" text-anchor="middle" font-weight="bold">Photo</text>
+
+  <!-- Notification (far left) -->
+  <rect x="50" y="700" width="130" height="44" rx="3" fill="#DDEEFF" stroke="#336699" stroke-width="2"/>
+  <text x="115" y="727" text-anchor="middle" font-weight="bold">Notification</text>
+
+  <!-- CityViews (far right of City) -->
+  <rect x="620" y="130" width="110" height="44" rx="3" fill="#DDEEFF" stroke="#336699" stroke-width="2"/>
+  <text x="675" y="157" text-anchor="middle" font-weight="bold">CityViews</text>
+
+  <!-- ========= RELATIONSHIP DIAMONDS (yellow) ================= -->
+
+  <!-- WRITES  User–Review  (between User and Review vertically) -->
+  <polygon points="105,480 135,500 105,520 75,500" fill="#FFFACC" stroke="#AA8800" stroke-width="1.5"/>
+  <text x="105" y="504" text-anchor="middle" font-size="11">WRITES</text>
+
+  <!-- REVIEWS  Review–City  (horizontal between Review and City) -->
+  <polygon points="290,590 320,572 350,590 320,608" fill="#FFFACC" stroke="#AA8800" stroke-width="1.5"/>
+  <text x="320" y="594" text-anchor="middle" font-size="11">REVIEWS</text>
+
+  <!-- LIKES  User–Review  (left side) -->
+  <polygon points="10,590 35,572 60,590 35,608" fill="#FFFACC" stroke="#AA8800" stroke-width="1.5"/>
+  <text x="35" y="594" text-anchor="middle" font-size="10">LIKES</text>
+
+  <!-- FAVOURITES  User–City  (horizontal center) -->
+  <polygon points="230,372 260,354 290,372 260,390" fill="#FFFACC" stroke="#AA8800" stroke-width="1.5"/>
+  <text x="260" y="376" text-anchor="middle" font-size="10">FAVS</text>
+
+  <!-- CREATES  User–Trip  (vertical above User) -->
+  <polygon points="105,240 135,258 105,276 75,258" fill="#FFFACC" stroke="#AA8800" stroke-width="1.5"/>
+  <text x="105" y="262" text-anchor="middle" font-size="10">CREATES</text>
+
+  <!-- INCLUDES  Trip–City  (diagonal) -->
+  <polygon points="240,195 268,178 296,195 268,212" fill="#FFFACC" stroke="#AA8800" stroke-width="1.5"/>
+  <text x="268" y="199" text-anchor="middle" font-size="10">INCLUDES</text>
+
+  <!-- UPLOADS  User–Photo  (diagonal upper) -->
+  <polygon points="230,230 258,213 286,230 258,247" fill="#FFFACC" stroke="#AA8800" stroke-width="1.5"/>
+  <text x="258" y="234" text-anchor="middle" font-size="10">UPLOADS</text>
+
+  <!-- TAGGED_TO  Photo–City  (horizontal top) -->
+  <polygon points="390,152 418,135 446,152 418,169" fill="#FFFACC" stroke="#AA8800" stroke-width="1.5"/>
+  <!-- already between Photo and City, shown inline in line segment -->
+
+  <!-- CONTAINS  City–Place  (horizontal right) -->
+  <polygon points="560,372 590,354 620,372 590,390" fill="#FFFACC" stroke="#AA8800" stroke-width="1.5"/>
+  <text x="590" y="376" text-anchor="middle" font-size="10">CONTAINS</text>
+
+  <!-- TRACKED_BY  City–CityViews  (top of City) -->
+  <polygon points="445,250 475,268 445,286 415,268" fill="#FFFACC" stroke="#AA8800" stroke-width="1.5"/>
+  <text x="445" y="272" text-anchor="middle" font-size="10">TRACKED</text>
+
+  <!-- RECEIVES  User–Notification  (below User) -->
+  <polygon points="105,650 135,668 105,686 75,668" fill="#FFFACC" stroke="#AA8800" stroke-width="1.5"/>
+  <text x="105" y="672" text-anchor="middle" font-size="10">RECEIVES</text>
+
+  <!-- ========= CONNECTING LINES =============================== -->
+  <!-- User ↔ WRITES ↔ Review -->
+  <line x1="105" y1="394" x2="105" y2="480" stroke="#555" stroke-width="1.5"/>
+  <line x1="105" y1="520" x2="105" y2="570" stroke="#555" stroke-width="1.5"/>
+
+  <!-- Review ↔ REVIEWS ↔ City  (N:1 arrow towards City) -->
+  <line x1="160" y1="592" x2="290" y2="592" stroke="#555" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="350" y1="590" x2="445" y2="590" stroke="#555" stroke-width="1.5"/>
+  <line x1="445" y1="590" x2="445" y2="394" stroke="#555" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- User ↔ LIKES ↔ Review  (M:N, no arrow) -->
+  <line x1="50" y1="592" x2="35" y2="608" stroke="#555" stroke-width="1.5"/>
+  <line x1="35" y1="572" x2="50" y2="570" stroke="#555" stroke-width="1.5"/>
+  <!-- double line from LIKES to Review indicates M side -->
+  <line x1="60" y1="590" x2="50" y2="590" stroke="#555" stroke-width="1.5"/>
+  <text x="8" y="588" font-size="10" fill="#c00">M</text>
+  <text x="8" y="600" font-size="10" fill="#c00">N</text>
+
+  <!-- User ↔ FAVOURITES ↔ City  (M:N) -->
+  <line x1="160" y1="372" x2="230" y2="372" stroke="#555" stroke-width="1.5"/>
+  <line x1="290" y1="372" x2="390" y2="372" stroke="#555" stroke-width="1.5"/>
+  <text x="168" y="368" font-size="10" fill="#c00">M</text>
+  <text x="378" y="368" font-size="10" fill="#c00">N</text>
+
+  <!-- User ↔ CREATES ↔ Trip  (1:N, arrow at Trip) -->
+  <line x1="105" y1="350" x2="105" y2="276" stroke="#555" stroke-width="1.5"/>
+  <line x1="105" y1="240" x2="105" y2="174" stroke="#555" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="111" y="345" font-size="10" fill="#c00">N</text>
+  <text x="111" y="183" font-size="10" fill="#c00">1</text>
+
+  <!-- Trip ↔ INCLUDES ↔ City  (M:N) -->
+  <line x1="160" y1="152" x2="240" y2="195" stroke="#555" stroke-width="1.5"/>
+  <line x1="296" y1="195" x2="445" y2="195" stroke="#555" stroke-width="1.5"/>
+  <line x1="445" y1="195" x2="445" y2="350" stroke="#555" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="165" y="168" font-size="10" fill="#c00">M</text>
+  <text x="450" y="345" font-size="10" fill="#c00">N</text>
+
+  <!-- User ↔ UPLOADS ↔ Photo  (1:N) -->
+  <line x1="160" y1="372" x2="258" y2="230" stroke="#555" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <line x1="286" y1="230" x2="390" y2="152" stroke="#555" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr)"/>
+  <text x="170" y="363" font-size="10" fill="#770">N</text>
+
+  <!-- Photo ↔ TAGGED_TO ↔ City  (N:1) -->
+  <line x1="500" y1="152" x2="445" y2="152" stroke="#555" stroke-width="1.5"/>
+  <line x1="445" y1="152" x2="445" y2="350" stroke="#555" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="505" y="148" font-size="10" fill="#c00">N</text>
+  <text x="450" y="175" font-size="10" fill="#c00">1</text>
+
+  <!-- City ↔ CONTAINS ↔ Place  (1:N) -->
+  <line x1="500" y1="372" x2="560" y2="372" stroke="#555" stroke-width="1.5"/>
+  <line x1="620" y1="372" x2="730" y2="372" stroke="#555" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="505" y="368" font-size="10" fill="#c00">1</text>
+  <text x="718" y="368" font-size="10" fill="#c00">N</text>
+
+  <!-- City ↔ TRACKED ↔ CityViews  (1:1) -->
+  <line x1="445" y1="350" x2="445" y2="286" stroke="#555" stroke-width="1.5"/>
+  <line x1="475" y1="268" x2="675" y2="268" stroke="#555" stroke-width="1.5"/>
+  <line x1="675" y1="268" x2="675" y2="174" stroke="#555" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="450" y="345" font-size="10" fill="#c00"> </text>
+
+  <!-- User ↔ RECEIVES ↔ Notification  (1:N) -->
+  <line x1="105" y1="614" x2="105" y2="650" stroke="#555" stroke-width="1.5"/>
+  <line x1="105" y1="686" x2="115" y2="700" stroke="#555" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="111" y="698" font-size="10" fill="#c00">N</text>
+
+  <!-- ========= SELECTED KEY ATTRIBUTES (ovals) ================ -->
+  <!-- User attributes -->
+  <ellipse cx="20" cy="350" rx="28" ry="13" fill="#E8F8E8" stroke="#5A9A5A" stroke-width="1"/>
+  <text x="20" y="354" text-anchor="middle" font-size="9">username</text>
+  <line x1="50" y1="358" x2="28" y2="355" stroke="#999" stroke-width="1"/>
+
+  <ellipse cx="20" cy="375" rx="22" ry="12" fill="#E8F8E8" stroke="#5A9A5A" stroke-width="1"/>
+  <text x="20" y="379" text-anchor="middle" font-size="9">email</text>
+  <line x1="50" y1="375" x2="42" y2="375" stroke="#999" stroke-width="1"/>
+
+  <ellipse cx="20" cy="400" rx="18" ry="12" fill="#E8F8E8" stroke="#5A9A5A" stroke-width="1"/>
+  <text x="20" y="404" text-anchor="middle" font-size="9">role</text>
+  <line x1="50" y1="390" x2="28" y2="400" stroke="#999" stroke-width="1"/>
+
+  <!-- City attributes -->
+  <ellipse cx="390" cy="315" rx="22" ry="12" fill="#E8F8E8" stroke="#5A9A5A" stroke-width="1"/>
+  <text x="390" y="319" text-anchor="middle" font-size="9">name</text>
+  <line x1="415" y1="350" x2="400" y2="327" stroke="#999" stroke-width="1"/>
+
+  <ellipse cx="450" cy="315" rx="24" ry="12" fill="#E8F8E8" stroke="#5A9A5A" stroke-width="1"/>
+  <text x="450" y="319" text-anchor="middle" font-size="9">region</text>
+  <line x1="445" y1="350" x2="450" y2="327" stroke="#999" stroke-width="1"/>
+
+  <ellipse cx="510" cy="315" rx="16" ry="12" fill="#E8F8E8" stroke="#5A9A5A" stroke-width="1"/>
+  <text x="510" y="319" text-anchor="middle" font-size="9">tags</text>
+  <line x1="475" y1="355" x2="500" y2="325" stroke="#999" stroke-width="1"/>
+
+  <!-- Review attributes -->
+  <ellipse cx="180" cy="592" rx="24" ry="12" fill="#E8F8E8" stroke="#5A9A5A" stroke-width="1"/>
+  <text x="180" y="596" text-anchor="middle" font-size="9">rating</text>
+  <line x1="160" y1="592" x2="156" y2="592" stroke="#999" stroke-width="1"/>
+
+  <!-- Trip attributes -->
+  <ellipse cx="50" cy="120" rx="20" ry="11" fill="#E8F8E8" stroke="#5A9A5A" stroke-width="1"/>
+  <text x="50" y="124" text-anchor="middle" font-size="9">title</text>
+  <line x1="80" y1="133" x2="65" y2="126" stroke="#999" stroke-width="1"/>
+
+  <ellipse cx="110" cy="108" rx="28" ry="11" fill="#E8F8E8" stroke="#5A9A5A" stroke-width="1"/>
+  <text x="110" y="112" text-anchor="middle" font-size="9">start_date</text>
+  <line x1="110" y1="130" x2="110" y2="119" stroke="#999" stroke-width="1"/>
+
+  <!-- Place attributes -->
+  <ellipse cx="800" cy="315" rx="28" ry="12" fill="#E8F8E8" stroke="#5A9A5A" stroke-width="1"/>
+  <text x="800" y="319" text-anchor="middle" font-size="9">category</text>
+  <line x1="785" y1="350" x2="800" y2="327" stroke="#999" stroke-width="1"/>
+
+  <ellipse cx="860" cy="355" rx="24" ry="12" fill="#E8F8E8" stroke="#5A9A5A" stroke-width="1"/>
+  <text x="860" y="359" text-anchor="middle" font-size="9">rating</text>
+  <line x1="840" y1="370" x2="848" y2="363" stroke="#999" stroke-width="1"/>
+
+  <!-- ========= WEAK ENTITY double-border (TripStop note) ====== -->
+  <!-- Note box -->
+  <rect x="200" y="750" width="260" height="52" rx="4" fill="#FFFFE0" stroke="#999"/>
+  <text x="330" y="768" text-anchor="middle" font-size="11" font-weight="bold">TripStop (weak entity)</text>
+  <text x="330" y="784" text-anchor="middle" font-size="10">Attributes: stop_order, notes</text>
+  <text x="330" y="796" text-anchor="middle" font-size="10">Key: (trip_id, city_id)</text>
+
+  <!-- CityViews note -->
+  <rect x="570" y="750" width="210" height="40" rx="4" fill="#FFFFE0" stroke="#999"/>
+  <text x="675" y="768" text-anchor="middle" font-size="11" font-weight="bold">CityViews (weak entity)</text>
+  <text x="675" y="782" text-anchor="middle" font-size="10">Key: city_id (FK)</text>
+
+  <!-- Legend -->
+  <rect x="20" y="750" width="160" height="60" rx="4" fill="#f9f9f9" stroke="#ccc"/>
+  <text x="30" y="768" font-size="11" font-weight="bold">Legend</text>
+  <rect x="30" y="774" width="18" height="10" fill="#DDEEFF" stroke="#336699" stroke-width="1.5"/>
+  <text x="54" y="783" font-size="10">Entity</text>
+  <polygon points="30,796 44,788 58,796 44,804" fill="#FFFACC" stroke="#AA8800" stroke-width="1"/>
+  <text x="64" y="801" font-size="10">Relationship</text>
+  <ellipse cx="38" cy="815" rx="14" ry="8" fill="#E8F8E8" stroke="#5A9A5A" stroke-width="1"/>
+  <text x="56" y="818" font-size="10">Attribute</text>
+
+</svg>
+</div>
+<p class="note">
+  Note: For clarity, not all attributes are shown in the diagram — only representative ones.
+  Full attribute lists are given in the table in Section 2.2. M:N relationships
+  (FAVOURITES, LIKES, INCLUDES) produce separate tables in the relational schema.
+</p>
+
+<!-- ===================================================================== -->
+<h2>Phase 2 — Database Design: Relational Schema</h2>
+
+<h3>3.1 Mapping Algorithm Applied to the E/R Diagram</h3>
+<p>
+  The following mapping rules (as taught in class) were applied:
+</p>
+<ol>
+  <li>Each regular entity becomes a relation with all its attributes. The primary key of the entity is the primary key of the relation.</li>
+  <li>Each weak entity becomes a relation. Its primary key is the combination of its partial key and the primary key of the owner entity.</li>
+  <li>Each 1:N relationship is represented by adding a foreign key in the "many" side relation pointing to the "one" side.</li>
+  <li>Each M:N relationship produces a new relation whose primary key is the combination of the two participating entities' primary keys. Extra relationship attributes are included.</li>
+  <li>Each 1:1 relationship can be merged into either side as a foreign key; here CityViews is kept as a separate table with city_id as both PK and FK.</li>
+</ol>
+
+<h3>3.2 Relational Schema (SQL CREATE TABLE Statements)</h3>
+
+<pre>
+-- ─────────────────────────────────────────────────────────────────────────
+-- TABLE: cities
+-- Maps to: City entity
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS cities (
+    id          INTEGER PRIMARY KEY,
+    name        TEXT    UNIQUE NOT NULL,
+    region      TEXT    NOT NULL,
+    description TEXT,
+    tags        TEXT        -- comma-separated category tags (e.g. 'Tarih,Müze')
+);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- TABLE: city_views
+-- Maps to: CityViews weak entity (1:1 with City, owner = City)
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS city_views (
+    city_id     INTEGER PRIMARY KEY,
+    view_count  INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE CASCADE
+);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- TABLE: places
+-- Maps to: Place entity + CONTAINS(City,Place) 1:N → FK city_id here
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS places (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    name         TEXT    NOT NULL,
+    city_id      INTEGER NOT NULL,
+    city_name    TEXT    NOT NULL,       -- denormalized for display performance
+    category     TEXT    NOT NULL,       -- human-readable label (e.g. 'Tarihi Yer')
+    category_key TEXT    NOT NULL,       -- CSS/filter key (e.g. 'tarih')
+    rating       REAL    NOT NULL DEFAULT 0.0,
+    description  TEXT,
+    icon         TEXT,
+    img_key      TEXT,
+    FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE CASCADE
+);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- TABLE: users
+-- Maps to: User entity
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS users (
+    id           INTEGER  PRIMARY KEY AUTOINCREMENT,
+    username     TEXT     UNIQUE NOT NULL,
+    email        TEXT     UNIQUE NOT NULL,
+    password     TEXT     NOT NULL,          -- bcrypt hash
+    role         TEXT     NOT NULL DEFAULT 'user'
+                          CHECK (role IN ('user', 'admin')),
+    bio          TEXT,
+    location     TEXT,
+    avatar_color TEXT     NOT NULL DEFAULT '#C1272D',
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- TABLE: reviews
+-- Maps to: Review entity
+--          + WRITES(User,Review)   1:N → FK user_id
+--          + REVIEWS(Review,City)  N:1 → FK city_id
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS reviews (
+    id            INTEGER  PRIMARY KEY AUTOINCREMENT,
+    city_id       INTEGER  NOT NULL,
+    city_name     TEXT     NOT NULL,           -- denormalized for display
+    reviewer_name TEXT     NOT NULL,
+    rating        INTEGER  NOT NULL
+                           CHECK (rating >= 1 AND rating <= 5),
+    text          TEXT     NOT NULL,
+    user_id       INTEGER,                     -- NULL for anonymous seed data
+    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (city_id)  REFERENCES cities(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id)  REFERENCES users(id)  ON DELETE SET NULL
+);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- TABLE: review_likes
+-- Maps to: LIKES(User,Review) M:N relationship
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS review_likes (
+    id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER  NOT NULL,
+    review_id  INTEGER  NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, review_id),               -- one like per user per review
+    FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE,
+    FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE
+);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- TABLE: favorites
+-- Maps to: FAVOURITES(User,City) M:N relationship
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS favorites (
+    id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER  NOT NULL,
+    city_id    INTEGER  NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, city_id),                 -- one favourite entry per pair
+    FOREIGN KEY (user_id) REFERENCES users(id)   ON DELETE CASCADE,
+    FOREIGN KEY (city_id) REFERENCES cities(id)  ON DELETE CASCADE
+);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- TABLE: trips
+-- Maps to: Trip entity + CREATES(User,Trip) 1:N → FK user_id
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS trips (
+    id          INTEGER  PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER  NOT NULL,
+    title       TEXT     NOT NULL,
+    start_date  TEXT,                          -- ISO date string YYYY-MM-DD
+    end_date    TEXT,
+    description TEXT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- TABLE: trip_stops
+-- Maps to: INCLUDES(Trip,City) M:N + TripStop weak entity attributes
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS trip_stops (
+    id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+    trip_id    INTEGER  NOT NULL,
+    city_id    INTEGER  NOT NULL,
+    city_name  TEXT     NOT NULL,              -- denormalized for display
+    stop_order INTEGER  NOT NULL DEFAULT 0,    -- ordering within the trip
+    notes      TEXT,
+    FOREIGN KEY (trip_id) REFERENCES trips(id)   ON DELETE CASCADE,
+    FOREIGN KEY (city_id) REFERENCES cities(id)  ON DELETE CASCADE
+);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- TABLE: photos
+-- Maps to: Photo entity
+--          + UPLOADS(User,Photo)      1:N → FK user_id
+--          + TAGGED_TO(Photo,City)    N:1 → FK city_id
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS photos (
+    id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER  NOT NULL,
+    city_id    INTEGER  NOT NULL,
+    city_name  TEXT     NOT NULL,              -- denormalized for display
+    file_path  TEXT     NOT NULL,
+    caption    TEXT,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)  ON DELETE CASCADE,
+    FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE CASCADE
+);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- TABLE: notifications
+-- Maps to: Notification entity + RECEIVES(User,Notification) 1:N → FK user_id
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS notifications (
+    id         INTEGER  PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER  NOT NULL,
+    message    TEXT     NOT NULL,
+    link       TEXT,
+    is_read    INTEGER  NOT NULL DEFAULT 0
+                        CHECK (is_read IN (0, 1)),
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+</pre>
+
+<h3>3.3 Schema Summary</h3>
+<table>
+  <tr><th>Table</th><th>Maps From</th><th>Primary Key</th><th>Foreign Keys</th></tr>
+  <tr><td>cities</td><td>City entity</td><td>id</td><td>—</td></tr>
+  <tr><td>city_views</td><td>CityViews weak entity (1:1 with City)</td><td>city_id</td><td>city_id → cities</td></tr>
+  <tr><td>places</td><td>Place entity + CONTAINS (1:N)</td><td>id</td><td>city_id → cities</td></tr>
+  <tr><td>users</td><td>User entity</td><td>id</td><td>—</td></tr>
+  <tr><td>reviews</td><td>Review entity + WRITES (1:N) + REVIEWS (N:1)</td><td>id</td><td>city_id → cities, user_id → users</td></tr>
+  <tr><td>review_likes</td><td>LIKES M:N relationship</td><td>(user_id, review_id)</td><td>user_id → users, review_id → reviews</td></tr>
+  <tr><td>favorites</td><td>FAVOURITES M:N relationship</td><td>(user_id, city_id)</td><td>user_id → users, city_id → cities</td></tr>
+  <tr><td>trips</td><td>Trip entity + CREATES (1:N)</td><td>id</td><td>user_id → users</td></tr>
+  <tr><td>trip_stops</td><td>INCLUDES M:N + TripStop attributes</td><td>id</td><td>trip_id → trips, city_id → cities</td></tr>
+  <tr><td>photos</td><td>Photo entity + UPLOADS (1:N) + TAGGED_TO (N:1)</td><td>id</td><td>user_id → users, city_id → cities</td></tr>
+  <tr><td>notifications</td><td>Notification entity + RECEIVES (1:N)</td><td>id</td><td>user_id → users</td></tr>
+</table>
+
+<h3>3.4 Integrity Constraints Summary</h3>
+<ul>
+  <li><strong>NOT NULL</strong>: All primary keys, foreign keys, and business-critical fields (username, email, password, city name, review text, rating).</li>
+  <li><strong>UNIQUE</strong>: username, email in users; (user_id, city_id) in favorites; (user_id, review_id) in review_likes.</li>
+  <li><strong>CHECK</strong>: rating between 1–5 in reviews; is_read in {0,1}; role in {'user','admin'}.</li>
+  <li><strong>FOREIGN KEY with ON DELETE CASCADE</strong>: deleting a user cascades to their reviews, favorites, trips, photos, notifications, and review_likes; deleting a trip cascades to its stops.</li>
+  <li><strong>FOREIGN KEY with ON DELETE SET NULL</strong>: deleting a user sets user_id = NULL on reviews authored anonymously, preserving the review content.</li>
+</ul>
+
+<hr style="margin-top:60px;">
+<p class="note" style="text-align:center;">End of Document — Keşfet Türkiye Database Design (Phase 1 &amp; Phase 2)</p>
+</body>
+</html>
