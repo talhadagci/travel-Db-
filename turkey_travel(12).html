@@ -171,11 +171,11 @@
   .hero {
     height:100vh; display:flex; align-items:center; justify-content:center;
     position:relative; overflow:hidden;
-    background:url('/fotograflar/foto12.png') center/cover no-repeat;
+    background:url('/fotograflar/fotograf1234.jpeg') center/cover no-repeat;
   }
   .hero::before {
     content:''; position:absolute; inset:0;
-    background:rgba(0,0,0,.35);
+    background:rgba(0,0,0,.55);
   }
   .hero-pattern { display:none; }
   .hero-glow { display:none; }
@@ -339,9 +339,6 @@
   .detail-fact { background:white; border:1px solid var(--sand); border-radius:8px; padding:6px 12px; font-size:12px; color:var(--mid); }
 
   /* VİDEO */
-  .video-placeholder { background:var(--dark); border-radius:12px; height:200px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:rgba(255,255,255,.6); font-size:14px; cursor:pointer; transition:background .2s; margin:18px; }
-  .video-placeholder:hover { background:#2a1f18; }
-  .video-play { width:56px; height:56px; border-radius:50%; background:var(--red); display:flex; align-items:center; justify-content:center; font-size:22px; color:white; }
 
   /* FOOTER */
   footer { background:var(--dark); color:rgba(253,246,236,.5); text-align:center; padding:40px 24px; font-size:13px; letter-spacing:.5px; }
@@ -1420,7 +1417,6 @@ function buildAccordion(cityName) {
 
   const sections = [
     {key:'gezilecek', icon:'🗺️', label:'Gezilecek Yerler',  items:data.gezilecek||[]},
-    {key:'video',     icon:'🎬', label:'Tanıtım Videosu',   items:[]},
     {key:'muzeler',   icon:'🏛️', label:'Müzeler',           items:data.muzeler  ||[]},
     {key:'tarihi',    icon:'🏰', label:'Tarihi Yerler',     items:data.tarihi   ||[]},
     {key:'yorumlar',  icon:'💬', label:'Yorumlar',          items:[]},
@@ -1428,12 +1424,6 @@ function buildAccordion(cityName) {
   ];
 
   return sections.map(s=>{
-    if(s.key==='video'){
-      const inner = data.video
-        ?`<div style="padding:16px"><div style="position:relative;padding-bottom:56.25%;border-radius:12px;overflow:hidden"><iframe src="${data.video}" style="position:absolute;inset:0;width:100%;height:100%;border:none" allowfullscreen></iframe></div></div>`
-        :`<div class="video-placeholder"><div class="video-play">▶</div><span>Video yakında eklenecek</span></div>`;
-      return `<div class="acc-item"><div class="acc-head" onclick="toggleAcc(this)"><span class="acc-icon">${s.icon}</span><span class="acc-label">${s.label}</span><span class="acc-arrow">›</span></div><div class="acc-body">${inner}</div></div>`;
-    }
     if(s.key==='yorumlar'){
       return `<div class="acc-item"><div class="acc-head" onclick="toggleAcc(this)"><span class="acc-icon">${s.icon}</span><span class="acc-label">${s.label}</span><span class="acc-arrow">›</span></div><div class="acc-body">${buildReviewsAccordion(cityName)}</div></div>`;
     }
