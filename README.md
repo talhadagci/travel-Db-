@@ -25,7 +25,7 @@ Türkiye'nin şehirlerini keşfetmek için geliştirilmiş tam özellikli bir **
 |-------------|---------------------------------------|
 | Backend     | Python 3, Flask, Flask-CORS           |
 | Veritabanı  | SQLite                                |
-| Güvenlik    | Werkzeug (bcrypt), Session tabanlı auth |
+| Güvenlik    | Werkzeug Security (PBKDF2:SHA256), Flask Session |
 | Sunucu      | Gunicorn (production)                 |
 | Frontend    | HTML / CSS / JavaScript (SPA)         |
 | Dosya Yükleme | Werkzeug secure_filename            |
